@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["ai/ai-processor.js", "content/paste-assistant.js"],
+      "js": ["ai/ai-processor.js", "recorder/recorder.js", "content/paste-assistant.js"],
       "css": ["content/paste-assistant.css"]
     }
   ],

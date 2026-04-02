@@ -61,10 +61,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               action: 'paste_and_execute',
               text: text,
               additionalText: additionalText,
-              comboText: comboText
+              comboText: comboText,
+              sequence: request.sequence
             });
         }, 150);
     });
+  }
+
+  // Action: Forward recorded sequence back to the requester (the Hub)
+  if (request.action === 'recording_complete') {
+      // Find the tab that is currently "active" (where the hub is open)
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                  action: 'save_recorded_sequence',
+                  sequence: request.sequence
+              });
+          }
+      });
   }
 });
 

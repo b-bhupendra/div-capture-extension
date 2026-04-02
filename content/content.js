@@ -8,6 +8,7 @@ if (typeof window.divExtractorActive === 'undefined') {
   // Global state for this tab
   window.divExtractorActive = false; // Whether we are currently in selection mode
   window.divExtractorSelectedElements = new Set(); // Currently selected DOM elements
+  window.divExtractorRecordingCardId = null; // Track which card is being recorded
   
   // Listen for messages from the popup or background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -24,6 +25,10 @@ if (typeof window.divExtractorActive === 'undefined') {
     // Forced refresh of the target tab dropdowns in the UI
     if (request.action === 'force_tabs_refresh') {
       updateAllTabDropdowns();
+    }
+    // Receives a recorded sequence from the recorder script (via background)
+    if (request.action === 'save_recorded_sequence') {
+        saveRecordedSequence(request.sequence);
     }
   });
 
@@ -507,6 +512,30 @@ if (typeof window.divExtractorActive === 'undefined') {
       comboInput.value = 'Enter';
       comboInput.className = 'div-extractor-combo-input';
       
+      // Action Sequence Display
+      const sequenceLabel = document.createElement('label');
+      sequenceLabel.innerText = 'Action Sequence:';
+      const sequenceList = document.createElement('div');
+      sequenceList.className = 'div-extractor-sequence-list';
+      if (item.sequence && item.sequence.length > 0) {
+          sequenceList.innerHTML = item.sequence.map((s, i) => 
+              `<div class="div-extractor-sequence-item">${i+1}. ${s.type === 'click' ? `Click ${s.tag}` : '📍 Paste'}</div>`
+          ).join('');
+      } else {
+          sequenceList.innerText = 'No actions recorded. Default: Paste then Combo.';
+          sequenceList.style.fontSize = '11px';
+          sequenceList.style.color = '#6b7280';
+      }
+
+      const recordBtn = document.createElement('button');
+      recordBtn.innerText = '⏺ Record Sequence';
+      recordBtn.className = 'div-extractor-btn';
+      recordBtn.style.background = '#ef4444';
+      recordBtn.style.fontSize = '11px';
+      recordBtn.style.marginTop = '8px';
+      if (tabs.length === 0) recordBtn.disabled = true;
+      recordBtn.onclick = () => startRecordingForCard(item.id, targetSelect.value);
+
       // Action buttons: Remove and Send
       const cardActions = document.createElement('div');
       cardActions.className = 'div-extractor-history-card-actions';
@@ -537,7 +566,8 @@ if (typeof window.divExtractorActive === 'undefined') {
               tabId: targetId,
               text: item.text, // Use original full text, not preview
               additionalText: extraInput.value.trim(),
-              comboText: comboInput.value.trim()
+              comboText: comboInput.value.trim(),
+              sequence: item.sequence
           });
           
           closeHubModal();
@@ -562,6 +592,9 @@ if (typeof window.divExtractorActive === 'undefined') {
       card.appendChild(extraInput);
       card.appendChild(comboLabel);
       card.appendChild(comboInput);
+      card.appendChild(sequenceLabel);
+      card.appendChild(sequenceList);
+      card.appendChild(recordBtn);
       card.appendChild(cardActions);
       
       return card;
@@ -622,6 +655,46 @@ if (typeof window.divExtractorActive === 'undefined') {
           aiBtn.innerText = originalBtnText;
           aiBtn.disabled = false;
       }
+  }
+
+  /**
+   * Switches to the target tab and starts the recording mode there.
+   */
+  function startRecordingForCard(cardId, targetTabId) {
+      window.divExtractorRecordingCardId = cardId;
+      showToast('Switching to target tab to record...', '#3b82f6');
+      
+      chrome.tabs.sendMessage(parseInt(targetTabId, 10), { action: 'start_recording' }, (response) => {
+          if (chrome.runtime.lastError) {
+              console.log('Error starting recording:', chrome.runtime.lastError);
+          }
+          // The background script will handle the tab switch as part of the normal flow if we triggered it there,
+          // but for now we'll just rely on the user manually switching if needed, or we can force it.
+          chrome.runtime.sendMessage({
+              action: 'send_to_tab',
+              tabId: parseInt(targetTabId, 10),
+              text: 'REC_MODE' // Special flag or just ignored
+          });
+      });
+  }
+
+  /**
+   * Saves the recorded sequence into the specific history item.
+   */
+  function saveRecordedSequence(sequence) {
+      if (!window.divExtractorRecordingCardId) return;
+      
+      chrome.storage.local.get(['extractionHistory'], (data) => {
+          let history = data.extractionHistory || [];
+          const idx = history.findIndex(h => h.id === window.divExtractorRecordingCardId);
+          if (idx > -1) {
+              history[idx].sequence = sequence;
+              chrome.storage.local.set({ extractionHistory: history }, () => {
+                  showToast('Sequence saved to card!', '#10b981');
+                  window.divExtractorRecordingCardId = null;
+              });
+          }
+      });
   }
 
   /**

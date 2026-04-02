@@ -172,29 +172,76 @@
       sendResponse({ isEditable: isEditable });
     }
 
-    // Background script sends text to be pasted here from the Multi-Site Hub
+    // Background script sends text or a full sequence to be played back here
     if (request.action === 'paste_and_execute') {
-      const { text, additionalText, comboText } = request;
-      const combined = text + (additionalText ? '\n\n' + additionalText : '');
+      const { text, additionalText, comboText, sequence } = request;
       
-      // Discovery: Find the best target to paste into
-      // Priority: Focused element (if valid), then first visible editable element
-      let target = document.querySelector(':focus');
-      if (!target || !(target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && target.type === 'text') || target.isContentEditable)) {
-          const focusables = Array.from(document.querySelectorAll('textarea, [contenteditable="true"], input[type="text"]'));
-          target = focusables.find(el => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0) || focusables[0];
-      }
-      
-      if (target) {
-         pasteTextIntoTarget(target, combined);
-         
-         // If an auto-submit combo (like 'Enter') was specified, execute it
-         if (comboText) {
-             executeCombo(target, comboText);
-         }
+      if (sequence && sequence.length > 0) {
+          playActionSequence(sequence, text, additionalText, comboText);
+      } else {
+          // Legacy/Simple Mode: Just paste and execute combo
+          const combined = text + (additionalText ? '\n\n' + additionalText : '');
+          performSimplePaste(combined, comboText);
       }
     }
   });
+
+  /**
+   * Executes a series of recorded actions (clicks and pastes).
+   */
+  async function playActionSequence(sequence, text, additionalText, comboText) {
+      const combined = text + (additionalText ? '\n\n' + additionalText : '');
+      
+      for (const action of sequence) {
+          if (action.type === 'click') {
+              const el = document.querySelector(action.selector);
+              if (el) {
+                  el.click();
+                  // Small delay to allow site logic (like opening an input) to settle
+                  await new Promise(r => setTimeout(r, 150));
+              }
+          } else if (action.type === 'paste') {
+              // Priority: Currently focused element, then first visible editable
+              let target = document.querySelector(':focus');
+              if (!target || !isEditable(target)) {
+                  target = findVisibleEditable();
+              }
+              if (target) {
+                  pasteTextIntoTarget(target, combined);
+                  if (comboText) executeCombo(target, comboText);
+              }
+          }
+          // Small delay between sequence steps for reliability
+          await new Promise(r => setTimeout(r, 100));
+      }
+  }
+
+  /**
+   * Performs a simple paste into the best available target.
+   */
+  function performSimplePaste(text, comboText) {
+      let target = document.querySelector(':focus');
+      if (!target || !isEditable(target)) {
+          target = findVisibleEditable();
+      }
+      
+      if (target) {
+          pasteTextIntoTarget(target, text);
+          if (comboText) executeCombo(target, comboText);
+      }
+  }
+
+  function isEditable(el) {
+      return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text') || el.isContentEditable;
+  }
+
+  function findVisibleEditable() {
+      const focusables = Array.from(document.querySelectorAll('textarea, [contenteditable="true"], input[type="text"]'));
+      return focusables.find(el => {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+      }) || focusables[0];
+  }
 
   /**
    * Simulates a keyboard interaction (e.g., 'Enter', 'Ctrl+Enter') after pasting.
