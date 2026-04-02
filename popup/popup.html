@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 200px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      color: #333;
+      text-align: center;
+      background: #fdfdfd;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0 0 16px 0;
+      color: #1a1a1a;
+    }
+    p {
+      font-size: 13px;
+      margin-bottom: 16px;
+      color: #666;
+    }
+    button {
+      background: linear-gradient(135deg, #4f46e5, #3b82f6);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <img src="../icons/icon.png" width="64" height="64" style="border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+    <h1>Div Extractor</h1>
+    <p>Select sections on the page to extract clean text content.</p>
+  </div>
+  <button id="startSelection">Start Selecting</button>
+  <button id="openHub" style="margin-top: 10px; background: linear-gradient(135deg, #10b981, #059669);">Open Multi-Site Hub</button>
+  <script src="popup.js"></script>
+</body>
+</html>

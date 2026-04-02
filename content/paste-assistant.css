@@ -1,0 +1,26 @@
+.div-extractor-paste-assistant-btn {
+  position: absolute !important;
+  z-index: 2147483647 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.div-extractor-paste-assistant-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4) !important;
+  filter: brightness(1.1) !important;
+}
+
+.div-extractor-paste-assistant-btn:active {
+  transform: translateY(0) scale(0.96) !important;
+}
